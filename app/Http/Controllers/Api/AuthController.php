@@ -10,46 +10,29 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
+use OpenApi\Attributes as OA;
 
-/**
- * @OA\Info(
- *     title="VTEI Student API",
- *     version="1.0.0",
- *     description="REST API для мобільного додатку студентів ВТЕІ"
- * )
- * @OA\SecurityScheme(
- *     securityScheme="BearerAuth",
- *     type="http",
- *     scheme="bearer",
- *     bearerFormat="JWT"
- * )
- * @OA\Server(url="/api", description="API Server")
- */
 class AuthController extends Controller
 {
-    /**
-     * @OA\Post(
-     *     path="/auth/login",
-     *     tags={"Auth"},
-     *     summary="Вхід студента",
-     *     @OA\RequestBody(required=true,
-     *         @OA\JsonContent(
-     *             required={"login","password"},
-     *             @OA\Property(property="login", type="string", example="student@vtei.edu.ua"),
-     *             @OA\Property(property="password", type="string", example="secret")
-     *         )
-     *     ),
-     *     @OA\Response(response=200, description="Успішний вхід",
-     *         @OA\JsonContent(
-     *             @OA\Property(property="token", type="string"),
-     *             @OA\Property(property="student", type="object"),
-     *             @OA\Property(property="needs_cb_select", type="boolean"),
-     *             @OA\Property(property="groups", type="array", @OA\Items(type="object"))
-     *         )
-     *     ),
-     *     @OA\Response(response=422, description="Помилка валідації або неправильні дані")
-     * )
-     */
+    #[OA\Post(
+        path: '/auth/login',
+        summary: 'Вхід студента',
+        tags: ['Auth'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['login', 'password'],
+                properties: [
+                    new OA\Property(property: 'login', type: 'string', example: 'student@vtei.edu.ua'),
+                    new OA\Property(property: 'password', type: 'string', example: 'secret'),
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(response: 200, description: 'Успішний вхід'),
+            new OA\Response(response: 422, description: 'Невірний логін або пароль'),
+        ]
+    )]
     public function login(Request $request): JsonResponse
     {
         $request->validate([
@@ -93,21 +76,22 @@ class AuthController extends Controller
         ]);
     }
 
-    /**
-     * @OA\Post(
-     *     path="/auth/select-group",
-     *     tags={"Auth"},
-     *     summary="Вибір активної групи (для студентів у кількох групах)",
-     *     @OA\RequestBody(required=true,
-     *         @OA\JsonContent(
-     *             required={"student_id","cb_number"},
-     *             @OA\Property(property="student_id", type="integer"),
-     *             @OA\Property(property="cb_number", type="string")
-     *         )
-     *     ),
-     *     @OA\Response(response=200, description="Токен та профіль студента")
-     * )
-     */
+    #[OA\Post(
+        path: '/auth/select-group',
+        summary: 'Вибір активної групи (для студентів у кількох групах)',
+        tags: ['Auth'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['student_id', 'cb_number'],
+                properties: [
+                    new OA\Property(property: 'student_id', type: 'integer'),
+                    new OA\Property(property: 'cb_number', type: 'string'),
+                ]
+            )
+        ),
+        responses: [new OA\Response(response: 200, description: 'Токен та профіль студента')]
+    )]
     public function selectGroup(Request $request): JsonResponse
     {
         $request->validate([
@@ -133,15 +117,13 @@ class AuthController extends Controller
         ]);
     }
 
-    /**
-     * @OA\Post(
-     *     path="/auth/logout",
-     *     tags={"Auth"},
-     *     summary="Вихід з системи",
-     *     security={{"BearerAuth":{}}},
-     *     @OA\Response(response=200, description="Успішний вихід")
-     * )
-     */
+    #[OA\Post(
+        path: '/auth/logout',
+        summary: 'Вихід з системи',
+        security: [['BearerAuth' => []]],
+        tags: ['Auth'],
+        responses: [new OA\Response(response: 200, description: 'Успішний вихід')]
+    )]
     public function logout(Request $request): JsonResponse
     {
         $request->user()->currentAccessToken()->delete();
@@ -149,20 +131,19 @@ class AuthController extends Controller
         return response()->json(['message' => 'Вихід виконано']);
     }
 
-    /**
-     * @OA\Post(
-     *     path="/auth/recovery",
-     *     tags={"Auth"},
-     *     summary="Запит на відновлення паролю",
-     *     @OA\RequestBody(required=true,
-     *         @OA\JsonContent(
-     *             required={"email"},
-     *             @OA\Property(property="email", type="string", format="email")
-     *         )
-     *     ),
-     *     @OA\Response(response=200, description="Email надіслано")
-     * )
-     */
+    #[OA\Post(
+        path: '/auth/recovery',
+        summary: 'Запит на відновлення паролю',
+        tags: ['Auth'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['email'],
+                properties: [new OA\Property(property: 'email', type: 'string', format: 'email')]
+            )
+        ),
+        responses: [new OA\Response(response: 200, description: 'Email надіслано')]
+    )]
     public function recovery(Request $request): JsonResponse
     {
         $request->validate(['email' => 'required|email']);
@@ -172,22 +153,23 @@ class AuthController extends Controller
         return response()->json(['message' => 'Якщо email існує — лист надіслано']);
     }
 
-    /**
-     * @OA\Post(
-     *     path="/auth/reset-password",
-     *     tags={"Auth"},
-     *     summary="Встановити новий пароль за токеном",
-     *     @OA\RequestBody(required=true,
-     *         @OA\JsonContent(
-     *             required={"access_token","password","password_confirmation"},
-     *             @OA\Property(property="access_token", type="string"),
-     *             @OA\Property(property="password", type="string", minLength=6),
-     *             @OA\Property(property="password_confirmation", type="string")
-     *         )
-     *     ),
-     *     @OA\Response(response=200, description="Пароль змінено")
-     * )
-     */
+    #[OA\Post(
+        path: '/auth/reset-password',
+        summary: 'Встановити новий пароль за токеном',
+        tags: ['Auth'],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ['access_token', 'password', 'password_confirmation'],
+                properties: [
+                    new OA\Property(property: 'access_token', type: 'string'),
+                    new OA\Property(property: 'password', type: 'string', minLength: 6),
+                    new OA\Property(property: 'password_confirmation', type: 'string'),
+                ]
+            )
+        ),
+        responses: [new OA\Response(response: 200, description: 'Пароль змінено')]
+    )]
     public function resetPassword(Request $request): JsonResponse
     {
         $request->validate([
