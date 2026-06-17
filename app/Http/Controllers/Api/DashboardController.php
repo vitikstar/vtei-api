@@ -24,12 +24,17 @@ class DashboardController extends Controller
     {
         $student = $request->user();
 
-        // Отримати групу студента
-        $group = DB::connection('mysql')
+        // Отримати групу студента (якщо cb_number передано — конкретну, інакше першу)
+        $query = DB::connection('mysql')
             ->table('asu_grupa_student')
             ->where('student_id', $student->id)
-            ->where('archive', 0)
-            ->first();
+            ->where('archive', 0);
+
+        if ($request->query('cb_number')) {
+            $query->where('cb_number', $request->query('cb_number'));
+        }
+
+        $group = $query->first();
 
         if (!$group) {
             return response()->json([
@@ -56,7 +61,7 @@ class DashboardController extends Controller
             ->join('rozklad_nv_timetable_classes_group_st as rg', 'rg.timetable_id', '=', 'r.id')
             ->where('rg.grupa_id', $group->grupa_id)
             ->where('r.day', $dayOfWeek)
-            ->where('r.year', $this->currentYear())
+            ->where('r.year', $this->currentYear('/'))
             ->whereNull('r.date')
             ->orWhere(function ($q) use ($group, $today) {
                 $q->where('rg.grupa_id', $group->grupa_id)
@@ -68,7 +73,7 @@ class DashboardController extends Controller
         $disciplinesCount = DB::connection('mysql_s')
             ->table('mod_cards')
             ->where('st_group', $group->grupa_id)
-            ->where('teach_year', $this->currentYear())
+            ->where('teach_year', $this->currentYear('-'))
             ->count();
 
         // Середній бал по mod_list для студента
@@ -84,7 +89,7 @@ class DashboardController extends Controller
             ->table('dec_exam_header as h')
             ->join('subjects as s', 's.id', '=', 'h.subj_id')
             ->where('h.group_id', $group->grupa_id)
-            ->where('h.year', $this->currentYear())
+            ->where('h.year', $this->currentYear('-'))
             ->where('h.date', '>=', $today)
             ->orderBy('h.date')
             ->limit(5)
@@ -109,19 +114,18 @@ class DashboardController extends Controller
             'lessons_today' => $lessonsToday,
             'disciplines_count' => $disciplinesCount,
             'average_grade' => $avgGrade ? round($avgGrade, 1) : null,
-            'current_year' => $this->currentYear(),
+            'current_year' => $this->currentYear('-'),
             'upcoming_exams' => $upcomingExams,
         ]);
     }
 
-    private function currentYear(): string
+    private function currentYear(string $separator = '-'): string
     {
         $year = now()->year;
         $month = now()->month;
-        // Навчальний рік починається у вересні
         if ($month >= 9) {
-            return $year . '/' . ($year + 1);
+            return $year . $separator . ($year + 1);
         }
-        return ($year - 1) . '/' . $year;
+        return ($year - 1) . $separator . $year;
     }
 }

@@ -31,11 +31,11 @@
                                 "properties": {
                                     "login": {
                                         "type": "string",
-                                        "example": "ivanovatania190@gmail.com"
+                                        "example": "nastyastorozhuk10@gmail.com"
                                     },
                                     "password": {
                                         "type": "string",
-                                        "example": "vtei2020"
+                                        "example": "secret"
                                     }
                                 },
                                 "type": "object"
