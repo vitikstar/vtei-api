@@ -96,16 +96,21 @@ Sanctum Bearer token. Всі захищені маршрути мають middle
 ## Навчальний рік
 
 ```php
-private function currentYear(): string
+private function currentYear(string $separator = '-'): string
 {
     $year = now()->year;
     $month = now()->month;
     if ($month >= 9) {
-        return $year . '/' . ($year + 1);
+        return $year . $separator . ($year + 1);
     }
-    return ($year - 1) . '/' . $year;
+    return ($year - 1) . $separator . $year;
 }
 ```
+
+**Увага — різні формати в різних таблицях:**
+- `rozklad_nv_timetable_classes.year` → слеш: `currentYear('/')` → `2025/2026`
+- `mod_cards.teach_year` → дефіс: `currentYear('-')` → `2025-2026`
+- `dec_exam_header.year` → дефіс: `currentYear('-')` → `2025-2026`
 
 ---
 
