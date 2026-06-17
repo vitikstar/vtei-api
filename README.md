@@ -1,11 +1,86 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# VTEI Student API
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+REST API для мобільного додатку студентів ВТЕІ.
+Laravel 12 · Sanctum · OpenAPI 3.0 (Swagger)
+
+---
+
+## Швидкий старт
+
+```bash
+git clone git@github.com:vitikstar/vtei-api.git
+cd vtei-api
+
+composer install
+cp .env.example .env
+php artisan key:generate
+```
+
+Налаштуй `.env`:
+
+```env
+DB_HOST=127.0.0.1
+DB_DATABASE=vtei_api
+DB_USERNAME=root
+DB_PASSWORD=
+
+DB_S_HOST=127.0.0.1
+DB_S_DATABASE=base
+DB_S_USERNAME=root
+DB_S_PASSWORD=
+```
+
+```bash
+php artisan migrate
+php artisan serve
+```
+
+---
+
+## Swagger документація
+
+Після запуску сервера документація доступна за адресою:
+
+```
+http://localhost:8000/api/documentation
+```
+
+### Як користуватись
+
+1. Відкрий `http://localhost:8000/api/documentation` у браузері
+2. Перед першим запитом виконай **POST /api/auth/login** — введи логін і пароль
+3. Скопіюй `token` з відповіді
+4. Натисни кнопку **Authorize** (замок зверху праворуч)
+5. Введи токен у полі: `Bearer <твій_токен>`
+6. Тепер всі захищені ендпоінти доступні для тестування прямо в UI
+
+### Регенерація документації
+
+Якщо додав нові Swagger анотації — перегенеруй:
+
+```bash
+php artisan l5-swagger:generate
+```
+
+---
+
+## Структура API
+
+| Префікс | Опис | Авторизація |
+|---|---|---|
+| `POST /api/auth/login` | Вхід студента | Ні |
+| `POST /api/auth/logout` | Вихід | Так |
+| `GET /api/profile` | Профіль студента | Так |
+| `GET /api/dashboard` | Дашборд | Так |
+| `GET /api/schedule` | Розклад | Так |
+| `GET /api/grades` | Оцінки | Так |
+| `GET /api/disciplines/electives` | Вибіркові дисципліни | Так |
+| `GET /api/faq` | FAQ | Ні |
+| `GET /api/voting` | Голосування | Так |
+
+Повний опис всіх ендпоінтів — у [FUNCTIONAL.MD](FUNCTIONAL.MD)
+
+---
 
 ## About Laravel
 
