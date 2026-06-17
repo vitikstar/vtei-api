@@ -16,6 +16,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'student.active' => \App\Http\Middleware\EnsureStudentActive::class,
         ]);
+        $middleware->redirectGuestsTo(fn() => response()->json([
+            'message' => 'Unauthenticated.',
+            'code' => 'UNAUTHENTICATED',
+        ], 401));
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

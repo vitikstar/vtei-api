@@ -9,7 +9,7 @@ class Student extends Authenticatable
 {
     use HasApiTokens;
 
-    protected $connection = 'mysql_s';
+    protected $connection = 'mysql';
     protected $table = 'users_student';
 
     protected $fillable = [

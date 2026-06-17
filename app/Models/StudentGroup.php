@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class StudentGroup extends Model
 {
-    protected $connection = 'mysql_s';
+    protected $connection = 'mysql';
     protected $table = 'asu_grupa_student';
     public $timestamps = false;
 

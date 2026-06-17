@@ -1,0 +1,30 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: vtei-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: vtei_api
+    ports:
+      - "3308:3306"
+    volumes:
+      - vtei-mysql-data:/var/lib/mysql
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: vtei-phpmyadmin
+    restart: unless-stopped
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "8080:80"
+    depends_on:
+      - mysql
+
+volumes:
+  vtei-mysql-data:
