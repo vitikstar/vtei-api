@@ -24,7 +24,7 @@ class AuthController extends Controller
                 required: ['login', 'password'],
                 properties: [
                     new OA\Property(property: 'login', type: 'string', example: 'nastyastorozhuk10@gmail.com'),
-                    new OA\Property(property: 'password', type: 'string', example: 'secret'),
+                    new OA\Property(property: 'password', type: 'string', example: 'password'),
                 ]
             )
         ),
