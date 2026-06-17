@@ -49,18 +49,11 @@ class ScheduleController extends Controller
     {
         $student = $request->user();
 
-        $groupId = $request->query('group_id');
-        if (!$groupId) {
-            $group = DB::connection('mysql')
-                ->table('asu_grupa_student')
-                ->where('student_id', $student->id)
-                ->where('archive', 0)
-                ->first();
+        $groupId = $request->query('group_id')
+            ?? $this->activeGroup($student->id)?->grupa_id;
 
-            if (!$group) {
-                return response()->json(['message' => 'Групу не знайдено'], 404);
-            }
-            $groupId = $group->grupa_id;
+        if (!$groupId) {
+            return response()->json(['message' => 'Групу не знайдено'], 404);
         }
 
         $weekStart = $request->query('week_start')
@@ -181,15 +174,8 @@ class ScheduleController extends Controller
     {
         $student = $request->user();
 
-        $groupId = $request->query('group_id');
-        if (!$groupId) {
-            $group = DB::connection('mysql')
-                ->table('asu_grupa_student')
-                ->where('student_id', $student->id)
-                ->where('archive', 0)
-                ->first();
-            $groupId = $group?->grupa_id;
-        }
+        $groupId = $request->query('group_id')
+            ?? $this->activeGroup($student->id)?->grupa_id;
 
         if (!$groupId) {
             return response()->json([]);

@@ -8,6 +8,7 @@ use App\Models\Student;
 use App\Models\StudentGroup;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 use OpenApi\Attributes as OA;
@@ -54,66 +55,91 @@ class AuthController extends Controller
             ]);
         }
 
-        $groups = StudentGroup::where('student_id', $student->id)->get();
-
-        if ($groups->count() > 1) {
-            return response()->json([
-                'needs_cb_select' => true,
-                'student_id' => $student->id,
-                'groups' => $groups->map(fn($g) => [
-                    'cb_number' => $g->cb_number,
-                    'group_name' => $g->grupa_id,
-                ]),
-            ]);
-        }
+        $groups = StudentGroup::where('student_id', $student->id)
+            ->where('archive', 0)
+            ->get();
 
         $token = $student->createToken('mobile')->plainTextToken;
 
+        // Якщо є збережена активна група — залишаємо її, інакше ставимо першу
+        $hasActive = DB::table('student_active_groups')
+            ->where('student_id', $student->id)
+            ->exists();
+
+        if (!$hasActive && $groups->isNotEmpty()) {
+            $first = $groups->first();
+            DB::table('student_active_groups')->insertOrIgnore([
+                'student_id' => $student->id,
+                'cb_number'  => $first->cb_number,
+                'grupa_id'   => $first->grupa_id,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
         return response()->json([
-            'token' => $token,
-            'needs_cb_select' => false,
-            'student' => new StudentResource($student),
+            'token'            => $token,
+            'needs_group_select' => $groups->count() > 1,
+            'student'          => new StudentResource($student),
+            'groups'           => $groups->count() > 1
+                ? $groups->map(fn($g) => [
+                    'cb_number'  => $g->cb_number,
+                    'grupa_id'   => $g->grupa_id,
+                ])
+                : null,
         ]);
     }
 
-    #[OA\Post(
+    #[OA\Put(
         path: '/auth/select-group',
-        summary: 'Вибір активної групи (для студентів у кількох групах)',
+        summary: 'Встановити активну групу (для студентів у кількох групах)',
+        security: [['BearerAuth' => []]],
         tags: ['Auth'],
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(
-                required: ['student_id', 'cb_number'],
+                required: ['cb_number'],
                 properties: [
-                    new OA\Property(property: 'student_id', type: 'integer'),
-                    new OA\Property(property: 'cb_number', type: 'string'),
+                    new OA\Property(property: 'cb_number', type: 'string', example: '272062025'),
                 ]
             )
         ),
-        responses: [new OA\Response(response: 200, description: 'Токен та профіль студента')]
+        responses: [
+            new OA\Response(response: 200, description: 'Активну групу встановлено'),
+            new OA\Response(response: 404, description: 'Групу не знайдено'),
+        ]
     )]
     public function selectGroup(Request $request): JsonResponse
     {
         $request->validate([
-            'student_id' => 'required|integer',
             'cb_number' => 'required|string',
         ]);
 
-        $student = Student::findOrFail($request->student_id);
+        $student = $request->user();
 
-        $groupExists = StudentGroup::where('student_id', $student->id)
+        $group = StudentGroup::where('student_id', $student->id)
             ->where('cb_number', $request->cb_number)
-            ->exists();
+            ->where('archive', 0)
+            ->first();
 
-        if (!$groupExists) {
+        if (!$group) {
             return response()->json(['message' => 'Групу не знайдено'], 404);
         }
 
-        $token = $student->createToken('mobile', ['cb_number:' . $request->cb_number])->plainTextToken;
+        DB::table('student_active_groups')->updateOrInsert(
+            ['student_id' => $student->id],
+            [
+                'cb_number'  => $group->cb_number,
+                'grupa_id'   => $group->grupa_id,
+                'updated_at' => now(),
+                'created_at' => now(),
+            ]
+        );
 
         return response()->json([
-            'token' => $token,
-            'student' => new StudentResource($student),
+            'message'  => 'Активну групу встановлено',
+            'cb_number' => $group->cb_number,
+            'grupa_id'  => $group->grupa_id,
         ]);
     }
 

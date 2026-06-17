@@ -15,7 +15,6 @@ use App\Http\Controllers\Api\PageController;
 // Public routes
 Route::prefix('auth')->group(function () {
     Route::post('login', [AuthController::class, 'login']);
-    Route::post('select-group', [AuthController::class, 'selectGroup']);
     Route::post('recovery', [AuthController::class, 'recovery']);
     Route::post('reset-password', [AuthController::class, 'resetPassword']);
 });
@@ -35,6 +34,7 @@ Route::post('faq/question', [FaqController::class, 'store']);
 // Protected routes
 Route::middleware(['auth:sanctum', 'student.active'])->group(function () {
     Route::post('auth/logout', [AuthController::class, 'logout']);
+    Route::put('auth/select-group', [AuthController::class, 'selectGroup']);
 
     Route::get('profile', [ProfileController::class, 'show']);
     Route::put('profile/password', [ProfileController::class, 'changePassword']);

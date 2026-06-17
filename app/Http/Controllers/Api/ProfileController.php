@@ -25,18 +25,17 @@ class ProfileController extends Controller
     {
         $student = $request->user();
 
-        $group = DB::connection('mysql')
-            ->table('asu_grupa_student as gs')
-            ->join('asu_grupa as g', 'g.id', '=', 'gs.grupa_id')
-            ->where('gs.student_id', $student->id)
-            ->where('gs.archive', 0)
-            ->select(
-                'gs.cb_number',
-                'gs.grupa_id',
-                'g.name as group_name',
-                'g.course',
-            )
-            ->first();
+        $active = $this->activeGroup($student->id);
+
+        $group = $active
+            ? DB::connection('mysql')
+                ->table('asu_grupa_student as gs')
+                ->join('asu_grupa as g', 'g.id', '=', 'gs.grupa_id')
+                ->where('gs.student_id', $student->id)
+                ->where('gs.cb_number', $active->cb_number)
+                ->select('gs.cb_number', 'gs.grupa_id', 'g.name as group_name', 'g.course')
+                ->first()
+            : null;
 
         return response()->json([
             'id'              => $student->id,

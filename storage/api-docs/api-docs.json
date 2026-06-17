@@ -35,7 +35,7 @@
                                     },
                                     "password": {
                                         "type": "string",
-                                        "example": "secret"
+                                        "example": "password"
                                     }
                                 },
                                 "type": "object"
@@ -54,27 +54,24 @@
             }
         },
         "/auth/select-group": {
-            "post": {
+            "put": {
                 "tags": [
                     "Auth"
                 ],
-                "summary": "Вибір активної групи (для студентів у кількох групах)",
-                "operationId": "fc2bf30cd69a48690cd39b2fefee46e0",
+                "summary": "Встановити активну групу (для студентів у кількох групах)",
+                "operationId": "02af5384dc1b3249e19fd9bf603d857c",
                 "requestBody": {
                     "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
                                 "required": [
-                                    "student_id",
                                     "cb_number"
                                 ],
                                 "properties": {
-                                    "student_id": {
-                                        "type": "integer"
-                                    },
                                     "cb_number": {
-                                        "type": "string"
+                                        "type": "string",
+                                        "example": "272062025"
                                     }
                                 },
                                 "type": "object"
@@ -84,9 +81,17 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Токен та профіль студента"
+                        "description": "Активну групу встановлено"
+                    },
+                    "404": {
+                        "description": "Групу не знайдено"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
             }
         },
         "/auth/logout": {

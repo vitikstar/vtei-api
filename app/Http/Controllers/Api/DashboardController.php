@@ -24,17 +24,7 @@ class DashboardController extends Controller
     {
         $student = $request->user();
 
-        // Отримати групу студента (якщо cb_number передано — конкретну, інакше першу)
-        $query = DB::connection('mysql')
-            ->table('asu_grupa_student')
-            ->where('student_id', $student->id)
-            ->where('archive', 0);
-
-        if ($request->query('cb_number')) {
-            $query->where('cb_number', $request->query('cb_number'));
-        }
-
-        $group = $query->first();
+        $group = $this->activeGroup($student->id);
 
         if (!$group) {
             return response()->json([
