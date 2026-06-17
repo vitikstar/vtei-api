@@ -181,6 +181,147 @@
                     }
                 }
             }
+        },
+        "/dashboard": {
+            "get": {
+                "tags": [
+                    "Dashboard"
+                ],
+                "summary": "Головний дашборд студента",
+                "operationId": "faae45987996934eda46ad27a6f61dea",
+                "responses": {
+                    "200": {
+                        "description": "Статистика студента"
+                    },
+                    "401": {
+                        "description": "Не авторизований"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/schedule": {
+            "get": {
+                "tags": [
+                    "Schedule"
+                ],
+                "summary": "Розклад занять на тиждень",
+                "operationId": "a578f36850481808f9301936693dc7d8",
+                "parameters": [
+                    {
+                        "name": "week_start",
+                        "in": "query",
+                        "description": "Початок тижня (Y-m-d)",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "group_id",
+                        "in": "query",
+                        "description": "ID групи (за замовчуванням — група студента)",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Розклад на тиждень"
+                    },
+                    "401": {
+                        "description": "Не авторизований"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/schedule/lesson/{id}": {
+            "get": {
+                "tags": [
+                    "Schedule"
+                ],
+                "summary": "Детальна інформація про заняття",
+                "operationId": "4c65182564543c7dbb15a9be4e6bd17a",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Деталі заняття"
+                    },
+                    "404": {
+                        "description": "Заняття не знайдено"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/schedule/calendar": {
+            "get": {
+                "tags": [
+                    "Schedule"
+                ],
+                "summary": "Заняття у форматі для календаря",
+                "operationId": "3e6c083111c1df6c3135e028c65169df",
+                "parameters": [
+                    {
+                        "name": "start",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "end",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "group_id",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Список подій"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
         }
     },
     "components": {
@@ -196,6 +337,14 @@
         {
             "name": "Auth",
             "description": "Auth"
+        },
+        {
+            "name": "Dashboard",
+            "description": "Dashboard"
+        },
+        {
+            "name": "Schedule",
+            "description": "Schedule"
         }
     ]
 }
