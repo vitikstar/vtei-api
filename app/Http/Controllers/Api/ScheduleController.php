@@ -22,67 +22,73 @@ class ScheduleController extends Controller
     ];
 
     private array $lessonTypes = [
-        'lecture_hours'    => 'Лекція',
-        'lecturing_hours'  => 'Лекція',
-        'practical_hours'  => 'Практика',
-        'lab_hours'        => 'Лабораторна',
-        'seminar_hours'    => 'Семінар',
-        'consultation'     => 'Консультація',
-        'individual_hours' => 'Індивідуальна',
+        'lecturing_hours'           => 'Лекція',
+        'lecture_hours'             => 'Лекція',
+        'practical_hours'           => 'Практика',
+        'lab_hours'                 => 'Лабораторна',
+        'seminar_hours'             => 'Семінар',
+        'consult_hours'             => 'Консультація',
+        'consult_mag_hours'         => 'Консультація (маг.)',
+        'individual_hours'          => 'Індивідуальна',
+        'labor_hours'               => 'Самостійна',
+        'zalik_hours'               => 'Залік',
+        'semester_exams_hours'      => 'Екзамен',
+        'certification_exams_hours' => 'Атестація',
+        'coursework_protection_hours' => 'Захист курсової',
+        'conducting_protection_hours' => 'Захист',
+        'briefing_hours'            => 'Інструктаж',
     ];
 
     #[OA\Get(
         path: '/schedule',
-        summary: 'Розклад занять на тиждень',
+        summary: 'Розклад занять',
+        description: 'За замовчуванням повертає весь поточний навчальний рік. Керується параметрами period або date_from/date_to.',
         security: [['BearerAuth' => []]],
         tags: ['Schedule'],
         parameters: [
-            new OA\Parameter(name: 'week_start', in: 'query', description: 'Початок тижня (Y-m-d)', schema: new OA\Schema(type: 'string', format: 'date')),
-            new OA\Parameter(name: 'group_id', in: 'query', description: 'ID групи (за замовчуванням — група студента)', schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'period', in: 'query', description: 'Швидкий вибір: year (за замовч.), month, week, day', schema: new OA\Schema(type: 'string', enum: ['year', 'month', 'week', 'day'])),
+            new OA\Parameter(name: 'date', in: 'query', description: 'Опорна дата для period (Y-m-d). За замовч. — сьогодні', schema: new OA\Schema(type: 'string', format: 'date')),
+            new OA\Parameter(name: 'date_from', in: 'query', description: 'Початок довільного діапазону (Y-m-d)', schema: new OA\Schema(type: 'string', format: 'date')),
+            new OA\Parameter(name: 'date_to', in: 'query', description: 'Кінець довільного діапазону (Y-m-d)', schema: new OA\Schema(type: 'string', format: 'date')),
+            new OA\Parameter(name: 'teacher_id', in: 'query', description: 'Фільтр по викладачу (ID з таблиці users)', schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'auditorium_id', in: 'query', description: 'Фільтр по аудиторії', schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'subject_id', in: 'query', description: 'Фільтр по дисципліні', schema: new OA\Schema(type: 'integer')),
+            new OA\Parameter(name: 'lesson_type', in: 'query', description: 'Фільтр по типу заняття (lecturing_hours, practical_hours, ...)', schema: new OA\Schema(type: 'string')),
         ],
         responses: [
-            new OA\Response(response: 200, description: 'Розклад на тиждень'),
+            new OA\Response(response: 200, description: 'Розклад згрупований по днях'),
             new OA\Response(response: 401, description: 'Не авторизований'),
+            new OA\Response(response: 404, description: 'Групу не знайдено'),
         ]
     )]
     public function index(Request $request): JsonResponse
     {
-        $student = $request->user();
-
-        $groupId = $request->query('group_id')
-            ?? $this->activeGroup($request)?->grupa_id;
-
+        $groupId = $this->activeGroup($request)?->grupa_id;
         if (!$groupId) {
             return response()->json(['message' => 'Групу не знайдено'], 404);
         }
 
-        $weekStart = $request->query('week_start')
-            ? Carbon::parse($request->query('week_start'))->startOfDay()
-            : Carbon::now()->startOfWeek(Carbon::MONDAY);
+        [$from, $to] = $this->resolvePeriod($request);
 
-        $weekEnd = $weekStart->copy()->addDays(6);
-
-        $lessons = $this->getLessonsForPeriod($groupId, $weekStart, $weekEnd);
+        $lessons = $this->queryLessons($groupId, $from, $to, $request);
         $callSchedule = $this->getCallSchedule();
 
-        $days = [];
-        for ($i = 0; $i < 7; $i++) {
-            $date = $weekStart->copy()->addDays($i);
-            $dayNum = $i + 1;
-            $dayLessons = $lessons->filter(fn($l) => $l->day == $dayNum)->values();
-
-            $days[] = [
-                'date'    => $date->format('Y-m-d'),
-                'weekday' => $this->dayNames[$dayNum],
+        // Групуємо по даті
+        $grouped = $lessons->groupBy('date')->map(function ($dayLessons, $date) use ($callSchedule) {
+            $carbon = Carbon::parse($date);
+            return [
+                'date'    => $date,
+                'weekday' => $this->dayNames[$carbon->dayOfWeekIso] ?? '',
                 'lessons' => $dayLessons->map(fn($l) => $this->formatLesson($l, $callSchedule))->values(),
             ];
-        }
+        })->sortKeys()->values();
 
         return response()->json([
-            'week_start' => $weekStart->format('Y-m-d'),
-            'week_end'   => $weekEnd->format('Y-m-d'),
-            'group_id'   => (int) $groupId,
-            'days'       => $days,
+            'period'    => $request->query('period', 'year'),
+            'date_from' => $from->format('Y-m-d'),
+            'date_to'   => $to->format('Y-m-d'),
+            'grupa_id'  => (int) $groupId,
+            'days'      => $grouped,
         ]);
     }
 
@@ -111,10 +117,11 @@ class ScheduleController extends Controller
                 'r.id', 'r.day', 'r.para', 'r.date', 'r.year',
                 'r.type_hours', 'r.theme_name', 'r.homework',
                 'r.notes', 'r.is_remote',
-                'p.name as subject',
-                'u.t_name as teacher_name', 'u.short_t_name as teacher_short',
-                'u.email as teacher_email',
-                'a.title as auditorium', 'a.case_number as building',
+                'p.name as subject', 'p.id as subject_id',
+                'u.id as teacher_id', 'u.t_name as teacher_name',
+                'u.short_t_name as teacher_short', 'u.email as teacher_email',
+                'a.id as auditorium_id', 'a.title as auditorium',
+                'a.case_number as building',
             )
             ->first();
 
@@ -125,7 +132,6 @@ class ScheduleController extends Controller
         $callSchedule = $this->getCallSchedule();
         $para = $callSchedule[$lesson->para] ?? null;
 
-        // Групи для цього заняття
         $groups = DB::connection('mysql')
             ->table('rozklad_nv_timetable_classes_group_st as rg')
             ->join('asu_grupa as g', 'g.id', '=', 'rg.grupa_id')
@@ -137,88 +143,73 @@ class ScheduleController extends Controller
         return response()->json([
             'id'          => $lesson->id,
             'subject'     => $lesson->subject,
+            'subject_id'  => $lesson->subject_id,
             'lesson_type' => $this->lessonTypes[$lesson->type_hours] ?? $lesson->type_hours,
+            'lesson_type_key' => $lesson->type_hours,
             'theme'       => $lesson->theme_name,
             'homework'    => $lesson->homework,
             'notes'       => $lesson->notes,
             'is_remote'   => $lesson->is_remote === '1',
             'day'         => $this->dayNames[$lesson->day] ?? null,
             'date'        => $lesson->date,
-            'para'        => $lesson->para,
+            'para'        => (int) $lesson->para,
             'time_start'  => $para?->start,
             'time_end'    => $para?->end,
             'teacher'     => [
+                'id'    => $lesson->teacher_id,
                 'name'  => $lesson->teacher_name,
                 'short' => $lesson->teacher_short,
                 'email' => $lesson->teacher_email,
             ],
-            'auditorium'  => $lesson->auditorium,
-            'building'    => $lesson->building,
-            'groups'      => $groups,
+            'auditorium'     => $lesson->auditorium,
+            'auditorium_id'  => $lesson->auditorium_id,
+            'building'       => $lesson->building,
+            'groups'         => $groups,
         ]);
     }
 
-    #[OA\Get(
-        path: '/schedule/calendar',
-        summary: 'Заняття у форматі для календаря',
-        security: [['BearerAuth' => []]],
-        tags: ['Schedule'],
-        parameters: [
-            new OA\Parameter(name: 'start', in: 'query', required: true, schema: new OA\Schema(type: 'string', format: 'date')),
-            new OA\Parameter(name: 'end', in: 'query', required: true, schema: new OA\Schema(type: 'string', format: 'date')),
-            new OA\Parameter(name: 'group_id', in: 'query', schema: new OA\Schema(type: 'integer')),
-        ],
-        responses: [new OA\Response(response: 200, description: 'Список подій')]
-    )]
-    public function calendar(Request $request): JsonResponse
+    // --- Приватні методи ---
+
+    private function resolvePeriod(Request $request): array
     {
-        $student = $request->user();
-
-        $groupId = $request->query('group_id')
-            ?? $this->activeGroup($request)?->grupa_id;
-
-        if (!$groupId) {
-            return response()->json([]);
+        // Якщо передано довільний діапазон — використовуємо його
+        if ($request->query('date_from') && $request->query('date_to')) {
+            return [
+                Carbon::parse($request->query('date_from'))->startOfDay(),
+                Carbon::parse($request->query('date_to'))->endOfDay(),
+            ];
         }
 
-        $start = Carbon::parse($request->query('start', now()->startOfMonth()));
-        $end   = Carbon::parse($request->query('end', now()->endOfMonth()));
+        $anchor = $request->query('date')
+            ? Carbon::parse($request->query('date'))
+            : Carbon::now();
 
-        $lessons = $this->getLessonsForPeriod($groupId, $start, $end);
-        $callSchedule = $this->getCallSchedule();
-
-        $typeColors = [
-            'lecture_hours'   => '#3788d8',
-            'practical_hours' => '#28a745',
-            'lab_hours'       => '#fd7e14',
-            'seminar_hours'   => '#6f42c1',
-        ];
-
-        $events = $lessons->map(function ($l) use ($callSchedule, $typeColors, $start) {
-            $para = $callSchedule[$l->para] ?? null;
-            // Визначаємо дату події
-            if ($l->date) {
-                $date = $l->date;
-            } else {
-                // Знаходимо перший день тижня що відповідає $l->day
-                $date = $start->copy()->startOfWeek()->addDays($l->day - 1)->format('Y-m-d');
-            }
-
-            return [
-                'id'    => $l->id,
-                'title' => $l->subject . ' (' . ($this->lessonTypes[$l->type_hours] ?? $l->type_hours) . ')',
-                'start' => $date . 'T' . ($para?->start ?? '00:00') . ':00',
-                'end'   => $date . 'T' . ($para?->end ?? '00:00') . ':00',
-                'color' => $typeColors[$l->type_hours] ?? '#6c757d',
-            ];
-        });
-
-        return response()->json($events->values());
+        return match ($request->query('period', 'year')) {
+            'day'   => [$anchor->copy()->startOfDay(), $anchor->copy()->endOfDay()],
+            'week'  => [$anchor->copy()->startOfWeek(Carbon::MONDAY), $anchor->copy()->endOfWeek(Carbon::SUNDAY)],
+            'month' => [$anchor->copy()->startOfMonth(), $anchor->copy()->endOfMonth()],
+            default => $this->currentAcademicYear(),
+        };
     }
 
-    private function getLessonsForPeriod(int $groupId, Carbon $from, Carbon $to)
+    private function currentAcademicYear(): array
     {
-        return DB::connection('mysql')
+        $now = Carbon::now();
+        if ($now->month >= 9) {
+            return [
+                Carbon::create($now->year, 9, 1)->startOfDay(),
+                Carbon::create($now->year + 1, 8, 31)->endOfDay(),
+            ];
+        }
+        return [
+            Carbon::create($now->year - 1, 9, 1)->startOfDay(),
+            Carbon::create($now->year, 8, 31)->endOfDay(),
+        ];
+    }
+
+    private function queryLessons(int $groupId, Carbon $from, Carbon $to, Request $request)
+    {
+        $query = DB::connection('mysql')
             ->table('rozklad_nv_timetable_classes as r')
             ->join('rozklad_nv_timetable_classes_group_st as rg', 'rg.timetable_id', '=', 'r.id')
             ->leftJoin('asu_predmet as p', 'p.id', '=', 'r.predmet_id')
@@ -227,16 +218,31 @@ class ScheduleController extends Controller
             ->where('rg.grupa_id', $groupId)
             ->whereBetween('r.date', [$from->format('Y-m-d'), $to->format('Y-m-d')])
             ->groupBy('r.id')
-            ->orderBy('r.day')
+            ->orderBy('r.date')
             ->orderBy('r.para')
             ->select(
                 'r.id', 'r.day', 'r.para', 'r.date',
                 'r.type_hours', 'r.theme_name', 'r.is_remote',
+                'r.teacher_id', 'r.predmet_id', 'r.aud_id',
                 'p.name as subject',
                 'u.t_name as teacher_name', 'u.short_t_name as teacher_short',
                 'a.title as auditorium', 'a.case_number as building',
-            )
-            ->get();
+            );
+
+        if ($request->query('teacher_id')) {
+            $query->where('r.teacher_id', $request->query('teacher_id'));
+        }
+        if ($request->query('auditorium_id')) {
+            $query->where('r.aud_id', $request->query('auditorium_id'));
+        }
+        if ($request->query('subject_id')) {
+            $query->where('r.predmet_id', $request->query('subject_id'));
+        }
+        if ($request->query('lesson_type')) {
+            $query->where('r.type_hours', $request->query('lesson_type'));
+        }
+
+        return $query->get();
     }
 
     private function getCallSchedule(): \Illuminate\Support\Collection
@@ -252,17 +258,21 @@ class ScheduleController extends Controller
         $para = $callSchedule[$lesson->para] ?? null;
 
         return [
-            'id'          => $lesson->id,
-            'para'        => (int) $lesson->para,
-            'time_start'  => $para?->start,
-            'time_end'    => $para?->end,
-            'subject'     => $lesson->subject,
-            'teacher'     => $lesson->teacher_short ?? $lesson->teacher_name,
-            'auditorium'  => $lesson->auditorium,
-            'building'    => $lesson->building,
-            'lesson_type' => $this->lessonTypes[$lesson->type_hours] ?? $lesson->type_hours,
-            'theme'       => $lesson->theme_name,
-            'is_remote'   => $lesson->is_remote === '1',
+            'id'              => $lesson->id,
+            'para'            => (int) $lesson->para,
+            'time_start'      => $para?->start,
+            'time_end'        => $para?->end,
+            'subject'         => $lesson->subject,
+            'subject_id'      => $lesson->predmet_id,
+            'teacher'         => $lesson->teacher_short ?? $lesson->teacher_name,
+            'teacher_id'      => $lesson->teacher_id,
+            'auditorium'      => $lesson->auditorium,
+            'auditorium_id'   => $lesson->aud_id,
+            'building'        => $lesson->building,
+            'lesson_type'     => $this->lessonTypes[$lesson->type_hours] ?? $lesson->type_hours,
+            'lesson_type_key' => $lesson->type_hours,
+            'theme'           => $lesson->theme_name,
+            'is_remote'       => $lesson->is_remote === '1',
         ];
     }
 }

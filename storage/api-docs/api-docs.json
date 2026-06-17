@@ -324,33 +324,93 @@
                 "tags": [
                     "Schedule"
                 ],
-                "summary": "Розклад занять на тиждень",
+                "summary": "Розклад занять",
+                "description": "За замовчуванням повертає весь поточний навчальний рік. Керується параметрами period або date_from/date_to.",
                 "operationId": "a578f36850481808f9301936693dc7d8",
                 "parameters": [
                     {
-                        "name": "week_start",
+                        "name": "period",
                         "in": "query",
-                        "description": "Початок тижня (Y-m-d)",
+                        "description": "Швидкий вибір: year (за замовч.), month, week, day",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "year",
+                                "month",
+                                "week",
+                                "day"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "date",
+                        "in": "query",
+                        "description": "Опорна дата для period (Y-m-d). За замовч. — сьогодні",
                         "schema": {
                             "type": "string",
                             "format": "date"
                         }
                     },
                     {
-                        "name": "group_id",
+                        "name": "date_from",
                         "in": "query",
-                        "description": "ID групи (за замовчуванням — група студента)",
+                        "description": "Початок довільного діапазону (Y-m-d)",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "date_to",
+                        "in": "query",
+                        "description": "Кінець довільного діапазону (Y-m-d)",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "teacher_id",
+                        "in": "query",
+                        "description": "Фільтр по викладачу (ID з таблиці users)",
                         "schema": {
                             "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "auditorium_id",
+                        "in": "query",
+                        "description": "Фільтр по аудиторії",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "subject_id",
+                        "in": "query",
+                        "description": "Фільтр по дисципліні",
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "lesson_type",
+                        "in": "query",
+                        "description": "Фільтр по типу заняття (lecturing_hours, practical_hours, ...)",
+                        "schema": {
+                            "type": "string"
                         }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Розклад на тиждень"
+                        "description": "Розклад згрупований по днях"
                     },
                     "401": {
                         "description": "Не авторизований"
+                    },
+                    "404": {
+                        "description": "Групу не знайдено"
                     }
                 },
                 "security": [
@@ -383,52 +443,6 @@
                     },
                     "404": {
                         "description": "Заняття не знайдено"
-                    }
-                },
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ]
-            }
-        },
-        "/schedule/calendar": {
-            "get": {
-                "tags": [
-                    "Schedule"
-                ],
-                "summary": "Заняття у форматі для календаря",
-                "operationId": "3e6c083111c1df6c3135e028c65169df",
-                "parameters": [
-                    {
-                        "name": "start",
-                        "in": "query",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "format": "date"
-                        }
-                    },
-                    {
-                        "name": "end",
-                        "in": "query",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "format": "date"
-                        }
-                    },
-                    {
-                        "name": "group_id",
-                        "in": "query",
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Список подій"
                     }
                 },
                 "security": [

@@ -45,7 +45,6 @@ Route::middleware(['auth:sanctum', 'student.active'])->group(function () {
     Route::prefix('schedule')->group(function () {
         Route::get('/', [ScheduleController::class, 'index']);
         Route::get('lesson/{id}', [ScheduleController::class, 'lesson']);
-        Route::get('calendar', [ScheduleController::class, 'calendar']);
     });
 
     Route::prefix('grades')->group(function () {
