@@ -210,6 +210,349 @@
                 ]
             }
         },
+        "/disciplines/electives": {
+            "get": {
+                "tags": [
+                    "Disciplines"
+                ],
+                "summary": "Список вибіркових дисциплін",
+                "description": "Повертає доступні вибіркові дисципліни для освітньої програми і курсу студента. Включає інформацію про поточну/наступну хвилю вибору та кількість студентів що обрали кожну дисципліну.",
+                "operationId": "17ff036916753913563d91a6d5cbd68d",
+                "responses": {
+                    "200": {
+                        "description": "Список вибіркових дисциплін з інфо про хвилю"
+                    },
+                    "401": {
+                        "description": "Не авторизований"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/disciplines/electives/selected": {
+            "get": {
+                "tags": [
+                    "Disciplines"
+                ],
+                "summary": "Обрані вибіркові дисципліни",
+                "description": "Повертає дисципліни, які студент обрав у поточному навчальному році.",
+                "operationId": "c426d28f90e7f0ad94bd650f150c666c",
+                "responses": {
+                    "200": {
+                        "description": "Обрані дисципліни"
+                    },
+                    "401": {
+                        "description": "Не авторизований"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/disciplines/electives/save": {
+            "post": {
+                "tags": [
+                    "Disciplines"
+                ],
+                "summary": "Зберегти вибір дисциплін",
+                "description": "Зберігає вибрані студентом вибіркові дисципліни. Перезаписує поточний вибір для вказаного семестру.",
+                "operationId": "29f7c2d446ade77a82bb7edf1192f92a",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "predmet_ids",
+                                    "sem"
+                                ],
+                                "properties": {
+                                    "predmet_ids": {
+                                        "description": "ID дисциплін",
+                                        "type": "array",
+                                        "items": {
+                                            "type": "integer"
+                                        }
+                                    },
+                                    "sem": {
+                                        "description": "Семестр (1 або 2)",
+                                        "type": "integer"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Вибір збережено"
+                    },
+                    "400": {
+                        "description": "Вибір зараз недоступний"
+                    },
+                    "422": {
+                        "description": "Помилка валідації"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/disciplines/electives/{id}": {
+            "delete": {
+                "tags": [
+                    "Disciplines"
+                ],
+                "summary": "Видалити вибіркову дисципліну",
+                "description": "Видаляє одну дисципліну з вибору студента.",
+                "operationId": "d0cc1ceb5889fe8f0034b958a52af0f5",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "ID запису з nv_predmet_student_stage",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Видалено"
+                    },
+                    "404": {
+                        "description": "Не знайдено"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/disciplines/history": {
+            "get": {
+                "tags": [
+                    "Disciplines"
+                ],
+                "summary": "Історія дисциплін",
+                "description": "Всі дисципліни студента по навчальних роках (обов'язкові + вибіркові).",
+                "operationId": "d8392ecf096564543d086bbfb59debcc",
+                "responses": {
+                    "200": {
+                        "description": "Дисципліни по роках"
+                    },
+                    "401": {
+                        "description": "Не авторизований"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/faq": {
+            "get": {
+                "tags": [
+                    "FAQ"
+                ],
+                "summary": "Групи FAQ",
+                "description": "Повертає список груп питань з кількістю питань у кожній.",
+                "operationId": "a2585f9d0b9b4f7607cd21eaf2ae4ddf",
+                "responses": {
+                    "200": {
+                        "description": "Список груп FAQ"
+                    }
+                }
+            }
+        },
+        "/faq/{group_id}/questions": {
+            "get": {
+                "tags": [
+                    "FAQ"
+                ],
+                "summary": "Питання групи FAQ",
+                "description": "Повертає всі питання і відповіді вказаної групи.",
+                "operationId": "e7890485333e8fcf596f2f2a733a23f6",
+                "parameters": [
+                    {
+                        "name": "group_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Список питань"
+                    },
+                    "404": {
+                        "description": "Групу не знайдено"
+                    }
+                }
+            }
+        },
+        "/faq/question": {
+            "post": {
+                "tags": [
+                    "FAQ"
+                ],
+                "summary": "Задати питання",
+                "description": "Додає нове питання у вказану групу FAQ.",
+                "operationId": "de3e532f81aada881da2eb098c1dc478",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "question",
+                                    "group_id"
+                                ],
+                                "properties": {
+                                    "question": {
+                                        "description": "Текст питання",
+                                        "type": "string"
+                                    },
+                                    "group_id": {
+                                        "description": "ID групи",
+                                        "type": "integer"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Питання додано"
+                    },
+                    "422": {
+                        "description": "Помилка валідації"
+                    }
+                }
+            }
+        },
+        "/grades": {
+            "get": {
+                "tags": [
+                    "Grades"
+                ],
+                "summary": "Успішність по семестрах",
+                "description": "Повертає модульні оцінки та результати екзаменів/заліків, згруповані по навчальних роках і семестрах.",
+                "operationId": "219f2a64ee0e5767a4aa4f1c65debdbc",
+                "responses": {
+                    "200": {
+                        "description": "Успішність згрупована по роках і семестрах"
+                    },
+                    "401": {
+                        "description": "Не авторизований"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/grades/modules": {
+            "get": {
+                "tags": [
+                    "Grades"
+                ],
+                "summary": "Модульні картки поточного року",
+                "description": "Повертає модульні картки студента за поточний навчальний рік.",
+                "operationId": "48c6a2380d5b0d537caef8b27dddbb0c",
+                "responses": {
+                    "200": {
+                        "description": "Список карток"
+                    },
+                    "401": {
+                        "description": "Не авторизований"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/grades/modules/{card_id}": {
+            "get": {
+                "tags": [
+                    "Grades"
+                ],
+                "summary": "Деталі модульної картки",
+                "description": "Повертає розбивку балів по окремих завданнях кожного модуля.",
+                "operationId": "b86102ece1d50050cd892de62773282f",
+                "parameters": [
+                    {
+                        "name": "card_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Деталі картки"
+                    },
+                    "404": {
+                        "description": "Не знайдено"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/grades/markbook": {
+            "get": {
+                "tags": [
+                    "Grades"
+                ],
+                "summary": "Залікова книжка",
+                "description": "Всі результати екзаменів та заліків, згруповані по навчальних роках і семестрах.",
+                "operationId": "d7ba528efff244324e907793071a4fa7",
+                "responses": {
+                    "200": {
+                        "description": "Залікова книжка"
+                    },
+                    "401": {
+                        "description": "Не авторизований"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
+        },
         "/profile": {
             "get": {
                 "tags": [
@@ -310,6 +653,121 @@
                     },
                     "422": {
                         "description": "Невалідний файл"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/schedule/teachers": {
+            "get": {
+                "tags": [
+                    "Schedule"
+                ],
+                "summary": "Список викладачів згрупованих по кафедрах",
+                "description": "Повертає викладачів з розкладу поточної групи, згрупованих по кафедрах.",
+                "operationId": "a7dc791515a132df84bba1048ed7dc4d",
+                "responses": {
+                    "200": {
+                        "description": "Масив кафедр з викладачами"
+                    },
+                    "401": {
+                        "description": "Не авторизований"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/schedule/auditoriums": {
+            "get": {
+                "tags": [
+                    "Schedule"
+                ],
+                "summary": "Список аудиторій згрупованих по корпусах",
+                "description": "Повертає аудиторії з розкладу поточної групи, згруповані по корпусах.",
+                "operationId": "959e1fad24a4923f59fcb9f0799723c0",
+                "responses": {
+                    "200": {
+                        "description": "Масив корпусів з аудиторіями"
+                    },
+                    "401": {
+                        "description": "Не авторизований"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/schedule/subjects": {
+            "get": {
+                "tags": [
+                    "Schedule"
+                ],
+                "summary": "Список дисциплін",
+                "description": "Повертає дисципліни з розкладу поточної групи.",
+                "operationId": "1cfe313cfcc1f98958c5870439c97add",
+                "responses": {
+                    "200": {
+                        "description": "Список дисциплін"
+                    },
+                    "401": {
+                        "description": "Не авторизований"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/schedule/groups": {
+            "get": {
+                "tags": [
+                    "Schedule"
+                ],
+                "summary": "Список груп згрупованих по факультетах",
+                "description": "Повертає всі групи інституту, згруповані по факультетах і курсах.",
+                "operationId": "518547062fe0b1e3a57d980e6ef92b7b",
+                "responses": {
+                    "200": {
+                        "description": "Масив факультетів з групами"
+                    },
+                    "401": {
+                        "description": "Не авторизований"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/schedule/lesson-types": {
+            "get": {
+                "tags": [
+                    "Schedule"
+                ],
+                "summary": "Список типів занять",
+                "description": "Повертає всі можливі типи занять з ключами для фільтрації.",
+                "operationId": "748e003886703555b7e56a34cda1b684",
+                "responses": {
+                    "200": {
+                        "description": "Список типів занять"
+                    },
+                    "401": {
+                        "description": "Не авторизований"
                     }
                 },
                 "security": [
@@ -451,6 +909,160 @@
                     }
                 ]
             }
+        },
+        "/settings": {
+            "get": {
+                "tags": [
+                    "Settings"
+                ],
+                "summary": "Налаштування студента",
+                "description": "Повертає поточні налаштування: FCM токен, Telegram.",
+                "operationId": "2e06d6f946c7ac2bea504994bae0224d",
+                "responses": {
+                    "200": {
+                        "description": "Налаштування"
+                    },
+                    "401": {
+                        "description": "Не авторизований"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/settings/notifications": {
+            "put": {
+                "tags": [
+                    "Settings"
+                ],
+                "summary": "Оновити FCM токен",
+                "description": "Зберігає або оновлює FCM токен для push-нотифікацій. Передати null щоб відключити.",
+                "operationId": "3bc500a2dc48b8e709fc09ab919dd96d",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "fcm_token": {
+                                        "description": "FCM токен пристрою або null",
+                                        "type": "string",
+                                        "nullable": true
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Оновлено"
+                    },
+                    "401": {
+                        "description": "Не авторизований"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/voting": {
+            "get": {
+                "tags": [
+                    "Voting"
+                ],
+                "summary": "Кандидати голосування",
+                "description": "Повертає список кандидатів студентського самоврядування та чи вже проголосував студент.",
+                "operationId": "58bddeb5b0e341b3c7e4d47e37b46e3e",
+                "responses": {
+                    "200": {
+                        "description": "Кандидати і статус голосування"
+                    },
+                    "401": {
+                        "description": "Не авторизований"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/voting/vote": {
+            "post": {
+                "tags": [
+                    "Voting"
+                ],
+                "summary": "Проголосувати",
+                "description": "Записує голос студента за кандидата. Повторне голосування неможливе.",
+                "operationId": "6d260cab226642395511abaae4f38621",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "candidate_student_id"
+                                ],
+                                "properties": {
+                                    "candidate_student_id": {
+                                        "description": "student_grupa_id кандидата",
+                                        "type": "integer"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Голос зараховано"
+                    },
+                    "409": {
+                        "description": "Вже проголосував"
+                    },
+                    "422": {
+                        "description": "Помилка валідації"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/voting/results": {
+            "get": {
+                "tags": [
+                    "Voting"
+                ],
+                "summary": "Результати голосування",
+                "description": "Повертає кількість голосів за кожного кандидата.",
+                "operationId": "655f0294e2683d0da0adf8299298a3a7",
+                "responses": {
+                    "200": {
+                        "description": "Результати"
+                    },
+                    "401": {
+                        "description": "Не авторизований"
+                    }
+                },
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ]
+            }
         }
     },
     "components": {
@@ -472,12 +1084,32 @@
             "description": "Dashboard"
         },
         {
+            "name": "Disciplines",
+            "description": "Disciplines"
+        },
+        {
+            "name": "FAQ",
+            "description": "FAQ"
+        },
+        {
+            "name": "Grades",
+            "description": "Grades"
+        },
+        {
             "name": "Profile",
             "description": "Profile"
         },
         {
             "name": "Schedule",
             "description": "Schedule"
+        },
+        {
+            "name": "Settings",
+            "description": "Settings"
+        },
+        {
+            "name": "Voting",
+            "description": "Voting"
         }
     ]
 }

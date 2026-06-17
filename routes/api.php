@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\FaqController;
 use App\Http\Controllers\Api\VotingController;
 use App\Http\Controllers\Api\SettingsController;
 use App\Http\Controllers\Api\PageController;
+use App\Http\Controllers\Api\ReferenceController;
 
 // Public routes
 Route::prefix('auth')->group(function () {
@@ -45,6 +46,11 @@ Route::middleware(['auth:sanctum', 'student.active'])->group(function () {
     Route::prefix('schedule')->group(function () {
         Route::get('/', [ScheduleController::class, 'index']);
         Route::get('lesson/{id}', [ScheduleController::class, 'lesson']);
+        Route::get('teachers', [ReferenceController::class, 'teachers']);
+        Route::get('auditoriums', [ReferenceController::class, 'auditoriums']);
+        Route::get('subjects', [ReferenceController::class, 'subjects']);
+        Route::get('groups', [ReferenceController::class, 'groups']);
+        Route::get('lesson-types', [ReferenceController::class, 'lessonTypes']);
     });
 
     Route::prefix('grades')->group(function () {
