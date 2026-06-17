@@ -17,31 +17,74 @@ class AuthController extends Controller
 {
     #[OA\Post(
         path: '/auth/login',
-        summary: 'Вхід студента',
+        summary: 'Вхід по email або заліковій книжці (cb_number)',
         tags: ['Auth'],
         requestBody: new OA\RequestBody(
             required: true,
             content: new OA\JsonContent(
                 required: ['login', 'password'],
                 properties: [
-                    new OA\Property(property: 'login', type: 'string', example: 'nastyastorozhuk10@gmail.com'),
+                    new OA\Property(property: 'login', type: 'string', example: '272062025', description: 'Номер залікової книжки'),
                     new OA\Property(property: 'password', type: 'string', example: 'password'),
                 ]
             )
         ),
         responses: [
-            new OA\Response(response: 200, description: 'Успішний вхід'),
+            new OA\Response(response: 200, description: 'Успішний вхід. Якщо needs_group_select=true — показати список groups для вибору, потім PUT /auth/select-group'),
             new OA\Response(response: 422, description: 'Невірний логін або пароль'),
         ]
     )]
     public function login(Request $request): JsonResponse
     {
         $request->validate([
-            'login' => 'required|string',
+            'login'    => 'required|string',
             'password' => 'required|string',
         ]);
 
-        $student = Student::where('email', $request->login)->first();
+        $login = $request->login;
+
+        // Спробуємо знайти по cb_number
+        $groupRow = DB::connection('mysql')
+            ->table('asu_grupa_student')
+            ->where('cb_number', $login)
+            ->where('archive', 0)
+            ->first();
+
+        if ($groupRow) {
+            // Логін по заліковій — студент і група відомі одразу
+            $student = Student::find($groupRow->student_id);
+
+            if (!$student || !Hash::check($request->password, $student->pwd)) {
+                throw ValidationException::withMessages([
+                    'login' => ['Невірний логін або пароль.'],
+                ]);
+            }
+
+            if (!$student->isActive()) {
+                throw ValidationException::withMessages([
+                    'login' => ['Акаунт не активований.'],
+                ]);
+            }
+
+            // Група відома — зберігаємо в токені
+            $token = $student->createToken('mobile', [
+                'grupa_id:' . $groupRow->grupa_id,
+                'cb_number:' . $groupRow->cb_number,
+            ])->plainTextToken;
+
+            return response()->json([
+                'token'              => $token,
+                'needs_group_select' => false,
+                'student'            => new StudentResource($student),
+                'group'              => [
+                    'cb_number' => $groupRow->cb_number,
+                    'grupa_id'  => $groupRow->grupa_id,
+                ],
+            ]);
+        }
+
+        // Логін по email
+        $student = Student::where('email', $login)->first();
 
         if (!$student || !Hash::check($request->password, $student->pwd)) {
             throw ValidationException::withMessages([
@@ -59,40 +102,41 @@ class AuthController extends Controller
             ->where('archive', 0)
             ->get();
 
-        $token = $student->createToken('mobile')->plainTextToken;
+        if ($groups->count() === 1) {
+            $g = $groups->first();
+            $token = $student->createToken('mobile', [
+                'grupa_id:' . $g->grupa_id,
+                'cb_number:' . $g->cb_number,
+            ])->plainTextToken;
 
-        // Якщо є збережена активна група — залишаємо її, інакше ставимо першу
-        $hasActive = DB::table('student_active_groups')
-            ->where('student_id', $student->id)
-            ->exists();
-
-        if (!$hasActive && $groups->isNotEmpty()) {
-            $first = $groups->first();
-            DB::table('student_active_groups')->insertOrIgnore([
-                'student_id' => $student->id,
-                'cb_number'  => $first->cb_number,
-                'grupa_id'   => $first->grupa_id,
-                'created_at' => now(),
-                'updated_at' => now(),
+            return response()->json([
+                'token'              => $token,
+                'needs_group_select' => false,
+                'student'            => new StudentResource($student),
+                'group'              => [
+                    'cb_number' => $g->cb_number,
+                    'grupa_id'  => $g->grupa_id,
+                ],
             ]);
         }
 
+        // Кілька груп — повертаємо тимчасовий токен без групи, студент має вибрати
+        $token = $student->createToken('mobile-pending')->plainTextToken;
+
         return response()->json([
-            'token'            => $token,
-            'needs_group_select' => $groups->count() > 1,
-            'student'          => new StudentResource($student),
-            'groups'           => $groups->count() > 1
-                ? $groups->map(fn($g) => [
-                    'cb_number'  => $g->cb_number,
-                    'grupa_id'   => $g->grupa_id,
-                ])
-                : null,
+            'token'              => $token,
+            'needs_group_select' => true,
+            'student'            => new StudentResource($student),
+            'groups'             => $groups->map(fn($g) => [
+                'cb_number' => $g->cb_number,
+                'grupa_id'  => $g->grupa_id,
+            ]),
         ]);
     }
 
     #[OA\Put(
         path: '/auth/select-group',
-        summary: 'Встановити активну групу (для студентів у кількох групах)',
+        summary: 'Вибрати активну групу (якщо needs_group_select=true). Повертає новий токен з групою.',
         security: [['BearerAuth' => []]],
         tags: ['Auth'],
         requestBody: new OA\RequestBody(
@@ -105,15 +149,13 @@ class AuthController extends Controller
             )
         ),
         responses: [
-            new OA\Response(response: 200, description: 'Активну групу встановлено'),
+            new OA\Response(response: 200, description: 'Новий токен з групою'),
             new OA\Response(response: 404, description: 'Групу не знайдено'),
         ]
     )]
     public function selectGroup(Request $request): JsonResponse
     {
-        $request->validate([
-            'cb_number' => 'required|string',
-        ]);
+        $request->validate(['cb_number' => 'required|string']);
 
         $student = $request->user();
 
@@ -126,18 +168,16 @@ class AuthController extends Controller
             return response()->json(['message' => 'Групу не знайдено'], 404);
         }
 
-        DB::table('student_active_groups')->updateOrInsert(
-            ['student_id' => $student->id],
-            [
-                'cb_number'  => $group->cb_number,
-                'grupa_id'   => $group->grupa_id,
-                'updated_at' => now(),
-                'created_at' => now(),
-            ]
-        );
+        // Видаляємо тимчасовий токен, видаємо новий з групою
+        $request->user()->currentAccessToken()->delete();
+
+        $token = $student->createToken('mobile', [
+            'grupa_id:' . $group->grupa_id,
+            'cb_number:' . $group->cb_number,
+        ])->plainTextToken;
 
         return response()->json([
-            'message'  => 'Активну групу встановлено',
+            'token'    => $token,
             'cb_number' => $group->cb_number,
             'grupa_id'  => $group->grupa_id,
         ]);

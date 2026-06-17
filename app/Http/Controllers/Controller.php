@@ -2,14 +2,33 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Support\Facades\DB;
+use Illuminate\Http\Request;
 
 abstract class Controller
 {
-    protected function activeGroup(int $studentId): ?object
+    protected function activeGroup(Request $request): ?object
     {
-        return DB::table('student_active_groups')
-            ->where('student_id', $studentId)
-            ->first();
+        $abilities = $request->user()->currentAccessToken()->abilities ?? [];
+
+        $grupaId  = null;
+        $cbNumber = null;
+
+        foreach ($abilities as $ability) {
+            if (str_starts_with($ability, 'grupa_id:')) {
+                $grupaId = (int) str_replace('grupa_id:', '', $ability);
+            }
+            if (str_starts_with($ability, 'cb_number:')) {
+                $cbNumber = str_replace('cb_number:', '', $ability);
+            }
+        }
+
+        if (!$grupaId) {
+            return null;
+        }
+
+        return (object) [
+            'grupa_id'  => $grupaId,
+            'cb_number' => $cbNumber,
+        ];
     }
 }

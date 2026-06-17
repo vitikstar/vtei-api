@@ -50,7 +50,7 @@ class ScheduleController extends Controller
         $student = $request->user();
 
         $groupId = $request->query('group_id')
-            ?? $this->activeGroup($student->id)?->grupa_id;
+            ?? $this->activeGroup($request)?->grupa_id;
 
         if (!$groupId) {
             return response()->json(['message' => 'Групу не знайдено'], 404);
@@ -175,7 +175,7 @@ class ScheduleController extends Controller
         $student = $request->user();
 
         $groupId = $request->query('group_id')
-            ?? $this->activeGroup($student->id)?->grupa_id;
+            ?? $this->activeGroup($request)?->grupa_id;
 
         if (!$groupId) {
             return response()->json([]);

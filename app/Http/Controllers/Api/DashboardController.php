@@ -24,7 +24,7 @@ class DashboardController extends Controller
     {
         $student = $request->user();
 
-        $group = $this->activeGroup($student->id);
+        $group = $this->activeGroup($request);
 
         if (!$group) {
             return response()->json([

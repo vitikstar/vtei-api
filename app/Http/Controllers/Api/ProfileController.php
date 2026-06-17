@@ -25,7 +25,7 @@ class ProfileController extends Controller
     {
         $student = $request->user();
 
-        $active = $this->activeGroup($student->id);
+        $active = $this->activeGroup($request);
 
         $group = $active
             ? DB::connection('mysql')

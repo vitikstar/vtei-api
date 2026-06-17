@@ -17,7 +17,7 @@
                 "tags": [
                     "Auth"
                 ],
-                "summary": "Вхід студента",
+                "summary": "Вхід по email або заліковій книжці (cb_number)",
                 "operationId": "99d66635c4992aeaa6aa44ff653d0563",
                 "requestBody": {
                     "required": true,
@@ -30,8 +30,9 @@
                                 ],
                                 "properties": {
                                     "login": {
+                                        "description": "Номер залікової книжки",
                                         "type": "string",
-                                        "example": "nastyastorozhuk10@gmail.com"
+                                        "example": "272062025"
                                     },
                                     "password": {
                                         "type": "string",
@@ -45,7 +46,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Успішний вхід"
+                        "description": "Успішний вхід. Якщо needs_group_select=true — показати список groups для вибору, потім PUT /auth/select-group"
                     },
                     "422": {
                         "description": "Невірний логін або пароль"
@@ -58,7 +59,7 @@
                 "tags": [
                     "Auth"
                 ],
-                "summary": "Встановити активну групу (для студентів у кількох групах)",
+                "summary": "Вибрати активну групу (якщо needs_group_select=true). Повертає новий токен з групою.",
                 "operationId": "02af5384dc1b3249e19fd9bf603d857c",
                 "requestBody": {
                     "required": true,
@@ -81,7 +82,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Активну групу встановлено"
+                        "description": "Новий токен з групою"
                     },
                     "404": {
                         "description": "Групу не знайдено"
