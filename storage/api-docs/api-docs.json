@@ -31,11 +31,11 @@
                                 "properties": {
                                     "login": {
                                         "type": "string",
-                                        "example": "student@vtei.edu.ua"
+                                        "example": "ivanovatania190@gmail.com"
                                     },
                                     "password": {
                                         "type": "string",
-                                        "example": "secret"
+                                        "example": "vtei2020"
                                     }
                                 },
                                 "type": "object"
